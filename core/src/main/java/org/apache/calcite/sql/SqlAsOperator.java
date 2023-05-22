@@ -102,12 +102,13 @@ public class SqlAsOperator extends SqlSpecialOperator {
     // we don't want to validate the identifier.
     final List<SqlNode> operands = call.getOperandList();
     assert operands.size() == 2;
-    assert operands.get(1) instanceof SqlIdentifier;
     operands.get(0).validateExpr(validator, scope);
-    SqlIdentifier id = (SqlIdentifier) operands.get(1);
-    if (!id.isSimple()) {
-      throw validator.newValidationError(id,
-          RESOURCE.aliasMustBeSimpleIdentifier());
+    if (operands.get(1) instanceof SqlIdentifier) {
+      SqlIdentifier id = (SqlIdentifier) operands.get(1);
+      if (!id.isSimple()) {
+        throw validator.newValidationError(id,
+            RESOURCE.aliasMustBeSimpleIdentifier());
+      }
     }
   }
 

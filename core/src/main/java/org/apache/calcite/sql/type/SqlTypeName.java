@@ -120,7 +120,11 @@ public enum SqlTypeName {
       SqlTypeFamily.COLUMN_LIST),
   DYNAMIC_STAR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, true,
       Types.JAVA_OBJECT, SqlTypeFamily.ANY),
-  GEOMETRY(PrecScale.NO_NO, true, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO);
+  GEOMETRY(PrecScale.NO_NO, true, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
+  VERTEX(PrecScale.NO_NO, true, -1, SqlTypeFamily.GRAPH),
+  EDGE(PrecScale.NO_NO, true, -1, SqlTypeFamily.GRAPH),
+  GRAPH(PrecScale.NO_NO, true, -1, SqlTypeFamily.GRAPH),
+  PATH(PrecScale.NO_NO, true, -1, SqlTypeFamily.GRAPH);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 

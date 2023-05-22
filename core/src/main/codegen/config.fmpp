@@ -41,6 +41,7 @@ data: {
     # List of additional classes and packages to import.
     # Example. "org.apache.calcite.sql.*", "java.util.List".
     imports: [
+        "org.apache.calcite.sql.SqlNumericLiteral",
     ]
 
     # List of new keywords. Example: "DATABASES", "TABLES". If the keyword is not a reserved
@@ -392,6 +393,12 @@ data: {
     dropStatementParserMethods: [
     ]
 
+    extendExpressions: [
+    ]
+
+    extendLeafQueryParserMethods: [
+    ]
+
     # List of files in @includes directory that have parser method
     # implementations for parsing custom SQL statements, literals or types
     # given as part of "statementParserMethods", "literalParserMethods" or
@@ -403,6 +410,7 @@ data: {
     includeCompoundIdentifier: true
     includeBraces: true
     includeAdditionalDeclarations: false
+    enableDoubleQuote: false
   }
 }
 

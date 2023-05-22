@@ -1828,7 +1828,7 @@ public abstract class RelOptUtil {
       return litmus.succeed();
     }
 
-    if (type1 != type2) {
+    if (!type1.equals(type2)) {
       return litmus.fail("type mismatch:\n{}:\n{}\n{}:\n{}",
           desc1, type1.getFullTypeString(),
           desc2, type2.getFullTypeString());

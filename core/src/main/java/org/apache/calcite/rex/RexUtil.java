@@ -487,6 +487,10 @@ public class RexUtil {
       return false;
     }
 
+    @Override public Boolean visitOther(RexNode other) {
+      return false;
+    }
+
     public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
       // Correlating variables change when there is an internal restart.
       // Not good enough for our purposes.
@@ -2607,11 +2611,7 @@ public class RexUtil {
     }
   }
 
-  /** Deep expressions simplifier.
-   *
-   * <p>This class is broken because it does not change the value of
-   * {@link RexUnknownAs} as it recurses into an expression. Do not use. */
-  @Deprecated // to be removed before 2.0
+  /** Deep expressions simplifier. */
   public static class ExprSimplifier extends RexShuttle {
     private final RexSimplify simplify;
     private final Map<RexNode, RexUnknownAs> unknownAsMap =
@@ -2619,10 +2619,12 @@ public class RexUtil {
     private final RexUnknownAs unknownAs;
     private final boolean matchNullability;
 
+    @Deprecated // to be removed before 2.0
     public ExprSimplifier(RexSimplify simplify) {
       this(simplify, RexUnknownAs.UNKNOWN, true);
     }
 
+    @Deprecated // to be removed before 2.0
     public ExprSimplifier(RexSimplify simplify, boolean matchNullability) {
       this(simplify, RexUnknownAs.UNKNOWN, matchNullability);
     }

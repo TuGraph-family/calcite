@@ -45,6 +45,11 @@ public class RexSubQuery extends RexCall {
     this.digest = computeDigest(false);
   }
 
+  public static RexSubQuery create(RelDataType type, SqlOperator op,
+                            ImmutableList<RexNode> operands, RelNode rel) {
+    return new RexSubQuery(type, op, operands, rel);
+  }
+
   /** Creates an IN sub-query. */
   public static RexSubQuery in(RelNode rel, ImmutableList<RexNode> nodes) {
     final RelDataType type = type(rel, nodes);

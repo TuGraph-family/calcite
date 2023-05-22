@@ -106,7 +106,8 @@ class SqlItemOperator extends SqlSpecialOperator {
           OperandTypes.family(SqlTypeFamily.INTEGER),
           OperandTypes.family(SqlTypeFamily.CHARACTER));
     default:
-      throw new AssertionError(operandType.getSqlTypeName());
+      throw new AssertionError("Illegal type for [] operator's left operand: "
+          + operandType.getSqlTypeName() + ",should be array or map type");
     }
   }
 

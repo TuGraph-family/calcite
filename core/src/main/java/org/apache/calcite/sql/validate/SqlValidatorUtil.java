@@ -48,6 +48,8 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -111,6 +113,9 @@ public class SqlValidatorUtil {
         return getRelOptTable(
             tableNamespace, catalogReader, datasetName, usedDataset, extendedFields);
       }
+    }
+    if (namespace.getTable() instanceof RelOptTable) {
+      return (RelOptTable) namespace.getTable();
     }
     return null;
   }
@@ -583,7 +588,8 @@ public class SqlValidatorUtil {
     final Table t = table == null ? null : table.unwrap(Table.class);
     if (!(t instanceof CustomColumnResolvingTable)) {
       final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
-      return nameMatcher.field(rowType, id.getSimple());
+      String idName = StringUtils.join(id.names, ".");
+      return nameMatcher.field(rowType, idName);
     }
 
     final List<Pair<RelDataTypeField, List<String>>> entries =
@@ -836,7 +842,7 @@ public class SqlValidatorUtil {
       SqlIdentifier expr = (SqlIdentifier) expandedGroupExpr;
 
       // column references should be fully qualified.
-      assert expr.names.size() == 2;
+      // assert expr.names.size() == 2;
       String originalRelName = expr.names.get(0);
       String originalFieldName = expr.names.get(1);
 
@@ -1174,7 +1180,7 @@ public class SqlValidatorUtil {
       };
 
   /** Builds a list of GROUP BY expressions. */
-  static class GroupAnalyzer {
+  public static class GroupAnalyzer {
     /** Extra expressions, computed from the input as extra GROUP BY
      * expressions. For example, calls to the {@code TUMBLE} functions. */
     final List<SqlNode> extraExprs = new ArrayList<>();
@@ -1182,7 +1188,7 @@ public class SqlValidatorUtil {
     final Map<Integer, Integer> groupExprProjection = new HashMap<>();
     int groupCount;
 
-    GroupAnalyzer(List<SqlNode> groupExprs) {
+    public GroupAnalyzer(List<SqlNode> groupExprs) {
       this.groupExprs = groupExprs;
     }
 
@@ -1190,6 +1196,18 @@ public class SqlValidatorUtil {
       // TODO: create an expression that could have no other source
       return SqlLiteral.createCharString("xyz" + groupCount++,
           SqlParserPos.ZERO);
+    }
+
+    public List<SqlNode> getExtraExprs() {
+      return extraExprs;
+    }
+
+    public List<SqlNode> getGroupExprs() {
+      return groupExprs;
+    }
+
+    public Map<Integer, Integer> getGroupExprProjection() {
+      return groupExprProjection;
     }
   }
 }

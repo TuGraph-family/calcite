@@ -226,6 +226,8 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
+  public static final FamilyOperandTypeChecker STRING_NUMERIC =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC);
   public static final FamilyOperandTypeChecker STRING_STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
@@ -456,7 +458,7 @@ public abstract class OperandTypes {
   // TODO: interval+datetime checking missing
   public static final SqlSingleOperandTypeChecker PLUS_OPERATOR =
       OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_SAME_SAME, DATETIME_INTERVAL,
-          INTERVAL_DATETIME);
+          INTERVAL_DATETIME, STRING_NUMERIC);
 
   /**
    * Type checking strategy for the "*" operator

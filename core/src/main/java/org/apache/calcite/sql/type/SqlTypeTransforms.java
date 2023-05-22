@@ -137,6 +137,8 @@ public abstract class SqlTypeTransforms {
             return SqlTypeName.VARBINARY;
           case ANY:
             return SqlTypeName.ANY;
+          case NULL:
+            return SqlTypeName.NULL;
           default:
             throw Util.unexpected(sqlTypeName);
           }
@@ -172,6 +174,26 @@ public abstract class SqlTypeTransforms {
         final List<RelDataTypeField> fields = typeToTransform.getFieldList();
         assert fields.size() == 1;
         return fields.get(0).getType();
+      };
+
+  public static final SqlTypeTransform NULL_TYPE_TO_VARCHAR =
+      (opBinding, typeToTransform) -> {
+        if (typeToTransform.getSqlTypeName() == SqlTypeName.NULL) {
+          RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          return typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+        }
+        return typeToTransform;
+      };
+
+  public static final SqlTypeTransform NULL_TYPE_TO_DOUBLE =
+      (opBinding, typeToTransform) -> {
+        if (typeToTransform.getSqlTypeName() == SqlTypeName.NULL) {
+          RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          return typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.DOUBLE), true);
+        }
+        return typeToTransform;
       };
 }
 

@@ -106,6 +106,10 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
     return type.getSqlTypeName() == SqlTypeName.DYNAMIC_STAR;
   }
 
+  @Override public RelDataTypeField copy(int newIndex) {
+    return new RelDataTypeFieldImpl(name, newIndex, type);
+  }
+
 }
 
 // End RelDataTypeFieldImpl.java

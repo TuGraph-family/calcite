@@ -60,7 +60,7 @@ public class RexFieldAccess extends RexNode {
     this.expr = expr;
     this.field = field;
     this.digest = expr + "." + field.getName();
-    assert expr.getType().getFieldList().get(field.getIndex()) == field;
+    assert expr.getType().getFieldList().get(field.getIndex()).equals(field);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -110,6 +110,8 @@ public class RexFieldAccess extends RexNode {
     result = 31 * result + field.hashCode();
     return result;
   }
+
+
 }
 
 // End RexFieldAccess.java

@@ -20,6 +20,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -65,6 +66,34 @@ public class RexCorrelVariable extends RexVariable {
 
   @Override public int hashCode() {
     return Objects.hash(digest, type, id);
+  }
+
+  public static boolean containCorrelVariable(List<RexNode> projects) {
+    if (projects == null) {
+      return false;
+    }
+    for (RexNode project : projects) {
+      Boolean contain = project.accept(new RexVisitorImpl<Boolean>(true) {
+
+        @Override public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
+          return true;
+        }
+
+        @Override public Boolean visitCall(RexCall call) {
+          for (RexNode operand : call.operands) {
+            Boolean accept = operand.accept(this);
+            if (accept != null && accept) {
+              return true;
+            }
+          }
+          return false;
+        }
+      });
+      if (contain != null && contain) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

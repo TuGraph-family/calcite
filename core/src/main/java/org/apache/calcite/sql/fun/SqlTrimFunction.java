@@ -46,7 +46,7 @@ public class SqlTrimFunction extends SqlFunction {
   protected static final SqlTrimFunction INSTANCE =
       new SqlTrimFunction("TRIM", SqlKind.TRIM,
           ReturnTypes.cascade(ReturnTypes.ARG2, SqlTypeTransforms.TO_NULLABLE,
-              SqlTypeTransforms.TO_VARYING),
+              SqlTypeTransforms.TO_VARYING, SqlTypeTransforms.NULL_TYPE_TO_VARCHAR),
           OperandTypes.and(
               OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING,
                   SqlTypeFamily.STRING),

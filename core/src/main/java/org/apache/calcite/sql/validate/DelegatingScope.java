@@ -135,6 +135,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           case PEEK_FIELDS:
           case PEEK_FIELDS_DEFAULT:
           case PEEK_FIELDS_NO_EXPAND:
+          case FULLY_QUALIFIED:
             final Step path2 = path.plus(rowType, field.getIndex(),
                 field.getName(), field.getType().getStructKind());
             final SqlValidatorNamespace ns2 = ns.lookupChild(field.getName());
@@ -346,6 +347,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             case PEEK_FIELDS:
             case PEEK_FIELDS_DEFAULT:
             case PEEK_FIELDS_NO_EXPAND:
+            case FULLY_QUALIFIED:
               columnName = field.getName(); // use resolved field name
               resolve(ImmutableList.of(tableName2), nameMatcher, false,
                   resolved);
@@ -463,7 +465,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               }
             };
         resolved.resolves.sort(c);
-        if (c.compare(resolved.resolves.get(0), resolved.resolves.get(1)) == 0) {
+        if (c.compare(resolved.resolves.get(0), resolved.resolves.get(1)) == 0
+            && !ignoreColumnAmbiguous()) {
           throw validator.newValidationError(suffix,
               RESOURCE.columnAmbiguous(suffix.toString()));
         }
@@ -523,6 +526,10 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       return SqlQualified.create(this, i, fromNs, identifier);
     }
     }
+  }
+
+  protected boolean ignoreColumnAmbiguous() {
+    return false;
   }
 
   public void validateExpr(SqlNode expr) {

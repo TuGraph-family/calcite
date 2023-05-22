@@ -38,6 +38,7 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Feature;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.runtime.Resources.ExInst;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.ModifiableViewTable;
@@ -131,7 +132,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-import javax.annotation.Nonnull;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -239,7 +239,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected final Deque<FunctionParamInfo> functionCallStack =
       new ArrayDeque<>();
 
-  private int nextGeneratedId;
+  protected int nextGeneratedId;
   protected final RelDataTypeFactory typeFactory;
 
   /** The type of dynamic parameters until a type is imposed on them. */
@@ -421,43 +421,39 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       List<Map.Entry<String, RelDataType>> fields,
       final boolean includeSystemVars) {
     final SelectScope scope = (SelectScope) getWhereScope(select);
-    if (expandStar(selectItems, aliases, fields, includeSystemVars, scope,
-        selectItem)) {
+    if (expandStar(selectItems, aliases, fields, includeSystemVars, scope, selectItem)) {
       return true;
     }
 
+    final SqlValidatorScope selectScope = getSelectScope(select);
     // Expand the select item: fully-qualify columns, and convert
     // parentheses-free functions such as LOCALTIME into explicit function
     // calls.
     SqlNode expanded = expand(selectItem, scope);
-    final String alias =
-        deriveAlias(
-            selectItem,
-            aliases.size());
 
+    final String alias =
+           deriveAlias(
+                  selectItem,
+                  aliases.size());
     // If expansion has altered the natural alias, supply an explicit 'AS'.
-    final SqlValidatorScope selectScope = getSelectScope(select);
     if (expanded != selectItem) {
       String newAlias =
-          deriveAlias(
-              expanded,
-              aliases.size());
+            deriveAlias(
+                     expanded,
+                     aliases.size());
       if (!newAlias.equals(alias)) {
         expanded =
-            SqlStdOperatorTable.AS.createCall(
-                selectItem.getParserPosition(),
-                expanded,
-                new SqlIdentifier(alias, SqlParserPos.ZERO));
+              SqlStdOperatorTable.AS.createCall(
+                       selectItem.getParserPosition(),
+                       expanded,
+                       new SqlIdentifier(alias, SqlParserPos.ZERO));
         deriveTypeImpl(selectScope, expanded);
       }
     }
-
     selectItems.add(expanded);
     aliases.add(alias);
 
-    if (expanded != null) {
-      inferUnknownTypes(targetType, scope, expanded);
-    }
+    inferUnknownTypes(targetType, scope, expanded);
     final RelDataType type = deriveType(selectScope, expanded);
     setValidatedNodeType(expanded, type);
     fields.add(Pair.of(alias, type));
@@ -1253,7 +1249,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         orderList = orderBy.orderList;
       }
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, orderBy.query,
-          null, null, null, null, orderList, orderBy.offset,
+          null, null, null, null, null, orderBy.offset,
           orderBy.fetch);
     }
 
@@ -1723,12 +1719,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   protected void inferUnknownTypes(
-      @Nonnull RelDataType inferredType,
-      @Nonnull SqlValidatorScope scope,
-      @Nonnull SqlNode node) {
-    Objects.requireNonNull(inferredType);
-    Objects.requireNonNull(scope);
-    Objects.requireNonNull(node);
+      RelDataType inferredType,
+      SqlValidatorScope scope,
+      SqlNode node) {
     final SqlValidatorScope newScope = scopes.get(node);
     if (newScope != null) {
       scope = newScope;
@@ -1737,7 +1730,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if ((node instanceof SqlDynamicParam) || isNullLiteral) {
       if (inferredType.equals(unknownType)) {
         if (isNullLiteral) {
-          throw newValidationError(node, RESOURCE.nullIllegal());
+          deriveType(scope, node);
+          return;
+          // throw newValidationError(node, RESOURCE.nullIllegal());
         } else {
           throw newValidationError(node, RESOURCE.dynamicParamIllegal());
         }
@@ -1796,9 +1791,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else {
         setValidatedNodeType(caseCall.getElseOperand(), returnType);
       }
-    } else if (node.getKind()  == SqlKind.AS) {
-      // For AS operator, only infer the operand not the alias
-      inferUnknownTypes(inferredType, scope, ((SqlCall) node).operand(0));
     } else if (node instanceof SqlCall) {
       final SqlCall call = (SqlCall) node;
       final SqlOperandTypeInference operandTypeInference =
@@ -1806,20 +1798,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlCallBinding callBinding = new SqlCallBinding(this, scope, call);
       final List<SqlNode> operands = callBinding.operands();
       final RelDataType[] operandTypes = new RelDataType[operands.size()];
-      Arrays.fill(operandTypes, unknownType);
-      // TODO:  eventually should assert(operandTypeInference != null)
-      // instead; for now just eat it
-      if (operandTypeInference != null) {
+      if (operandTypeInference == null) {
+        // TODO:  eventually should assert(operandTypeInference != null)
+        // instead; for now just eat it
+        Arrays.fill(operandTypes, unknownType);
+      } else {
         operandTypeInference.inferOperandTypes(
             callBinding,
             inferredType,
             operandTypes);
       }
       for (int i = 0; i < operands.size(); ++i) {
-        final SqlNode operand = operands.get(i);
-        if (operand != null) {
-          inferUnknownTypes(operandTypes[i], scope, operand);
-        }
+        inferUnknownTypes(operandTypes[i], scope, operands.get(i));
       }
     }
   }
@@ -2168,7 +2158,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (tableScope == null) {
         tableScope = new TableScope(parentScope, node);
       }
-      tableScope.addChild(newNs, alias, forceNullable);
+      tableScope.addChild(namespaces.get(newNs.getNode()), alias, forceNullable);
       if (extendList != null && extendList.size() != 0) {
         return enclosingNode;
       }
@@ -2273,8 +2263,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           lateral);
 
     default:
-      throw Util.unexpected(kind);
+      return registerOtherFrom(parentScope,
+          usingScope,
+          register,
+          node,
+          enclosingNode,
+          alias,
+          extendList,
+          forceNullable,
+          lateral);
     }
+  }
+
+  protected SqlNode registerOtherFrom(SqlValidatorScope parentScope,
+                                   SqlValidatorScope usingScope,
+                                   boolean register,
+                                   final SqlNode node,
+                                   SqlNode enclosingNode,
+                                   String alias,
+                                   SqlNodeList extendList,
+                                   boolean forceNullable,
+                                   final boolean lateral) {
+    throw Util.unexpected(node.getKind());
   }
 
   private static boolean isLateral(SqlNode node) {
@@ -2333,7 +2343,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param alias       Name of this query within its parent. Must be specified
    *                    if usingScope != null
    */
-  private void registerQuery(
+  protected void registerQuery(
       SqlValidatorScope parentScope,
       SqlValidatorScope usingScope,
       SqlNode node,
@@ -2675,8 +2685,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     default:
-      throw Util.unexpected(node.getKind());
+      registerOtherKindQuery(parentScope, usingScope, node, enclosingNode,
+          alias, forceNullable, checkUpdate);
     }
+  }
+
+  protected void registerOtherKindQuery(
+      SqlValidatorScope parentScope,
+      SqlValidatorScope usingScope,
+      SqlNode node,
+      SqlNode enclosingNode,
+      String alias,
+      boolean forceNullable,
+      boolean checkUpdate) {
+    throw Util.unexpected(node.getKind());
   }
 
   private void registerSetop(
@@ -2729,9 +2751,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           false);
       scope = withScope;
     }
-
-    registerQuery(scope, null, with.body, enclosingNode, alias, forceNullable,
+    SqlValidatorScope withBodyScope = getWithBodyScope(parentScope, with);
+    registerQuery(withBodyScope, null, with.body, enclosingNode, alias, forceNullable,
         checkUpdate);
+  }
+
+  protected SqlValidatorScope getWithBodyScope(SqlValidatorScope parentScope, SqlWith with) {
+    SqlValidatorScope scope = parentScope;
+    for (SqlNode withItem : with.withList) {
+      scope = scopes.get(withItem);
+    }
+    return scope;
   }
 
   public boolean isAggregate(SqlSelect select) {
@@ -3324,7 +3354,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       checkRollUpInSelectList(select);
       checkRollUp(null, select, select.getWhere(), getWhereScope(select));
       checkRollUp(null, select, select.getHaving(), getHavingScope(select));
-      checkRollUpInWindowDecl(select);
+      // checkRollUpInWindowDecl(select);
       checkRollUpInGroupBy(select);
       checkRollUpInOrderBy(select);
     }
@@ -3515,7 +3545,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     for (ScopeChild child : tableScope.children) {
       if (catalogReader.nameMatcher().matches(child.name, alias)) {
-        names = ((SqlIdentifier) child.namespace.getNode()).names;
+        if (child.namespace instanceof IdentifierNamespace) {
+          IdentifierNamespace childNamespace = (IdentifierNamespace) child.namespace;
+          names = childNamespace.getResolveId((SqlIdentifier) childNamespace.getNode()).names;
+        } else {
+          names = ((SqlIdentifier) child.namespace.getNode()).names;
+        }
         break;
       }
     }
@@ -3524,6 +3559,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else if (names.size() == 1) {
       return findTable(catalogReader.getRootSchema(), names.get(0),
               catalogReader.nameMatcher().isCaseSensitive());
+    } else if (names.size() == 2) {
+      boolean isCaseSensitive = catalogReader.nameMatcher().isCaseSensitive();
+      return findTable(catalogReader.getRootSchema().getSubSchema(names.get(0), isCaseSensitive),
+          names.get(1), isCaseSensitive);
     }
 
     CalciteSchema.TableEntry entry =
@@ -3552,8 +3591,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case STREAM:
         throw newValidationError(query, Static.RESOURCE.cannotStreamValues());
       }
-    } else {
-      assert query.isA(SqlKind.SET_QUERY);
+    } else if (query.isA(SqlKind.SET_QUERY)) {
       final SqlCall call = (SqlCall) query;
       for (SqlNode operand : call.getOperandList()) {
         if (deduceModality(operand) != modality) {
@@ -3562,7 +3600,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         validateModality(operand);
       }
+    } else {
+      validateOtherKindModality(query);
     }
+  }
+
+  protected void validateOtherKindModality(SqlNode query) {
+
   }
 
   /** Return the intended modality of a SELECT or set-op. */
@@ -3574,11 +3618,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           : SqlModality.RELATION;
     } else if (query.getKind() == SqlKind.VALUES) {
       return SqlModality.RELATION;
-    } else {
-      assert query.isA(SqlKind.SET_QUERY);
+    } else if (query.isA(SqlKind.SET_QUERY)) {
       final SqlCall call = (SqlCall) query;
       return deduceModality(call.getOperandList().get(0));
+    } else {
+      return deduceOtherKindModality(query);
     }
+  }
+
+  private SqlModality deduceOtherKindModality(SqlNode query) {
+    return SqlModality.RELATION;
   }
 
   public boolean validateModality(SqlSelect select, SqlModality modality,
@@ -4053,7 +4102,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             selectItem,
             select,
             targetRowType.isStruct()
-                && targetRowType.getFieldCount() >= i
+                && targetRowType.getFieldCount() - 1 >= i
                 ? targetRowType.getFieldList().get(i).getType()
                 : unknownType,
             expandedSelectItems,
@@ -4350,7 +4399,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private void checkFieldCount(SqlNode node, SqlValidatorTable table,
+  protected void checkFieldCount(SqlNode node, SqlValidatorTable table,
       SqlNode source, RelDataType logicalSourceRowType,
       RelDataType logicalTargetRowType) {
     final int sourceFieldCount = logicalSourceRowType.getFieldCount();
@@ -4769,8 +4818,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * The exception is determined when the function is applied.
    */
   class ValidationErrorFunction
-      implements Function2<SqlNode, Resources.ExInst<SqlValidatorException>,
-            CalciteContextException> {
+      implements Function2<SqlNode, ExInst<SqlValidatorException>,
+                  CalciteContextException> {
     @Override public CalciteContextException apply(
         SqlNode v0, Resources.ExInst<SqlValidatorException> v1) {
       return newValidationError(v0, v1);
@@ -5692,6 +5741,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case CURRENT_VALUE:
       case NEXT_VALUE:
       case WITH:
+      case GQL_PATH_PATTERN_SUB_QUERY:
         return call;
       }
       // Only visits arguments which are expressions. We don't want to

@@ -55,7 +55,9 @@ public enum Lex {
    * after which, identifiers are matched case-sensitively.
    * Unlike Java, back-ticks allow identifiers to contain non-alphanumeric
    * characters. */
-  JAVA(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true);
+  JAVA(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true),
+
+  GEAFLOW(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false);
 
   public final Quoting quoting;
   public final Casing unquotedCasing;

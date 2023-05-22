@@ -39,12 +39,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
-import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -170,12 +168,12 @@ public class RexSimplify {
   }
 
   public RexNode simplifyPreservingType(RexNode e, RexUnknownAs unknownAs,
-      boolean matchNullability) {
+                                        boolean matchNullability) {
     final RexNode e2 = simplifyUnknownAs(e, unknownAs);
     if (e2.getType() == e.getType()) {
       return e2;
     }
-    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, matchNullability);
+    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, true);
     if (e3.equals(e)) {
       return e;
     }
@@ -845,13 +843,12 @@ public class RexSimplify {
   /**
    * Decides whether it is safe to flatten the given case part into AND/ORs
    */
-  enum SafeRexVisitor implements RexVisitor<Boolean> {
-    INSTANCE;
+  static class SafeRexVisitor implements RexVisitor<Boolean> {
 
-    private final Set<SqlKind> safeOps;
+    private Set<SqlKind> safeOps;
 
     SafeRexVisitor() {
-      Set<SqlKind> safeOps = EnumSet.noneOf(SqlKind.class);
+      safeOps = new HashSet<>();
 
       safeOps.addAll(SqlKind.COMPARISON);
       safeOps.add(SqlKind.PLUS);
@@ -870,7 +867,6 @@ public class RexSimplify {
       safeOps.add(SqlKind.NOT);
       safeOps.add(SqlKind.CASE);
       safeOps.add(SqlKind.LIKE);
-      this.safeOps = Sets.immutableEnumSet(safeOps);
     }
 
     @Override public Boolean visitInputRef(RexInputRef inputRef) {
@@ -878,7 +874,7 @@ public class RexSimplify {
     }
 
     @Override public Boolean visitLocalRef(RexLocalRef localRef) {
-      return false;
+      return true;
     }
 
     @Override public Boolean visitLiteral(RexLiteral literal) {
@@ -886,6 +882,7 @@ public class RexSimplify {
     }
 
     @Override public Boolean visitCall(RexCall call) {
+
       if (!safeOps.contains(call.getKind())) {
         return false;
       }
@@ -929,6 +926,10 @@ public class RexSimplify {
       return false;
     }
 
+    @Override public Boolean visitOther(RexNode other) {
+      return false;
+    }
+
   }
 
   /** Analyzes a given {@link RexNode} and decides whenever it is safe to
@@ -940,12 +941,12 @@ public class RexSimplify {
   * <pre>case when a &gt; 0 then 1 / a else null end</pre>
   */
   static boolean isSafeExpression(RexNode r) {
-    return r.accept(SafeRexVisitor.INSTANCE);
+    return r.accept(new SafeRexVisitor());
   }
 
   private static RexNode simplifyBooleanCase(RexBuilder rexBuilder,
       List<CaseBranch> inputBranches, RexUnknownAs unknownAs, RelDataType branchType) {
-    RexNode result;
+    RexNode result = null;
 
     // prepare all condition/branches for boolean interpretation
     // It's done here make these interpretation changes available to case2or simplifications
@@ -1690,7 +1691,6 @@ public class RexSimplify {
       boolean removeUpperBound = false;
       boolean removeLowerBound = false;
       Range<C> r = p.left;
-      final RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
       switch (comparison) {
       case EQUALS:
         if (!r.contains(v0)) {
@@ -1702,7 +1702,7 @@ public class RexSimplify {
                 (List<RexNode>) ImmutableList.of(term)));
         // remove
         for (RexNode e : p.right) {
-          replaceLast(terms, e, trueLiteral);
+          Collections.replaceAll(terms, e, rexBuilder.makeLiteral(true));
         }
         break;
       case LESS_THAN: {
@@ -1736,7 +1736,10 @@ public class RexSimplify {
           removeUpperBound = true;
         } else {
           // Remove this term as it is contained in current upper bound
-          replaceLast(terms, term, trueLiteral);
+          final int index = terms.indexOf(term);
+          if (index >= 0) {
+            terms.set(index, rexBuilder.makeLiteral(true));
+          }
         }
         break;
       }
@@ -1770,7 +1773,10 @@ public class RexSimplify {
           removeUpperBound = true;
         } else {
           // Remove this term as it is contained in current upper bound
-          replaceLast(terms, term, trueLiteral);
+          final int index = terms.indexOf(term);
+          if (index >= 0) {
+            terms.set(index, rexBuilder.makeLiteral(true));
+          }
         }
         break;
       }
@@ -1805,7 +1811,10 @@ public class RexSimplify {
           removeLowerBound = true;
         } else {
           // Remove this term as it is contained in current lower bound
-          replaceLast(terms, term, trueLiteral);
+          final int index = terms.indexOf(term);
+          if (index >= 0) {
+            terms.set(index, rexBuilder.makeLiteral(true));
+          }
         }
         break;
       }
@@ -1839,7 +1848,10 @@ public class RexSimplify {
           removeLowerBound = true;
         } else {
           // Remove this term as it is contained in current lower bound
-          replaceLast(terms, term, trueLiteral);
+          final int index = terms.indexOf(term);
+          if (index >= 0) {
+            terms.set(index, rexBuilder.makeLiteral(true));
+          }
         }
         break;
       }
@@ -1850,7 +1862,7 @@ public class RexSimplify {
         ImmutableList.Builder<RexNode> newBounds = ImmutableList.builder();
         for (RexNode e : p.right) {
           if (isUpperBound(e)) {
-            replaceLast(terms, e, trueLiteral);
+            Collections.replaceAll(terms, e, rexBuilder.makeLiteral(true));
           } else {
             newBounds.add(e);
           }
@@ -1862,7 +1874,7 @@ public class RexSimplify {
         ImmutableList.Builder<RexNode> newBounds = ImmutableList.builder();
         for (RexNode e : p.right) {
           if (isLowerBound(e)) {
-            replaceLast(terms, e, trueLiteral);
+            Collections.replaceAll(terms, e, rexBuilder.makeLiteral(true));
           } else {
             newBounds.add(e);
           }
@@ -2036,22 +2048,6 @@ public class RexSimplify {
     return removeNullabilityCast(simplifiedAnds);
   }
 
-  /**
-   * Replaces the last occurrence of one specified value in a list with
-   * another.
-   *
-   * <p>Does not change the size of the list.
-   *
-   * <p>Returns whether the value was found.
-   */
-  private static <E> boolean replaceLast(List<E> list, E oldVal, E newVal) {
-    final int index = list.lastIndexOf(oldVal);
-    if (index < 0) {
-      return false;
-    }
-    list.set(index, newVal);
-    return true;
-  }
 }
 
 // End RexSimplify.java

@@ -18,7 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
@@ -34,7 +33,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
 
   //~ Constructors -----------------------------------------------------------
 
-  protected SqlCharStringLiteral(NlsString val, SqlParserPos pos) {
+  public SqlCharStringLiteral(NlsString val, SqlParserPos pos) {
     super(val, SqlTypeName.CHAR, pos);
   }
 
@@ -62,12 +61,6 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    if (false) {
-      Util.discard(Bug.FRG78_FIXED);
-      String stringValue = ((NlsString) value).getValue();
-      writer.literal(
-          writer.getDialect().quoteStringLiteral(stringValue));
-    }
     assert value instanceof NlsString;
     writer.literal(value.toString());
   }

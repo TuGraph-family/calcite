@@ -250,11 +250,17 @@ public abstract class RelDataTypeImpl
       StringBuilder sb,
       boolean withDetail);
 
+  public void generateTypeString2(
+      StringBuilder sb,
+      boolean withDetail) {
+    generateTypeString(sb, withDetail);
+  }
+
   /**
    * Computes the digest field. This should be called in every non-abstract
    * subclass constructor once the type is fully defined.
    */
-  protected void computeDigest() {
+  public void computeDigest() {
     StringBuilder sb = new StringBuilder();
     generateTypeString(sb, true);
     if (!isNullable()) {
@@ -376,6 +382,10 @@ public abstract class RelDataTypeImpl
 
   public boolean isDynamicStruct() {
     return false;
+  }
+
+  public String getDigest() {
+    return digest;
   }
 
   /** Work space for {@link RelDataTypeImpl#getFieldRecurse}. */

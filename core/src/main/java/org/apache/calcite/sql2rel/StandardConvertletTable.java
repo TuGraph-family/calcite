@@ -102,7 +102,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         SqlStdOperatorTable.IS_NULL);
     addAlias(SqlStdOperatorTable.IS_NOT_UNKNOWN,
         SqlStdOperatorTable.IS_NOT_NULL);
-    addAlias(SqlStdOperatorTable.PERCENT_REMAINDER, SqlStdOperatorTable.MOD);
+   // addAlias(SqlStdOperatorTable.PERCENT_REMAINDER, SqlStdOperatorTable.MOD);
 
     // Register convertlets for specific objects.
     registerOp(SqlStdOperatorTable.CAST, this::convertCast);
@@ -239,8 +239,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     // different types, say BIGINT.
     //
     // Similarly STDDEV_POP and STDDEV_SAMP, VAR_POP and VAR_SAMP.
-    registerOp(SqlStdOperatorTable.AVG,
-        new AvgVarianceConvertlet(SqlKind.AVG));
+//    registerOp(SqlStdOperatorTable.AVG,
+//        new AvgVarianceConvertlet(SqlKind.AVG));
     registerOp(SqlStdOperatorTable.STDDEV_POP,
         new AvgVarianceConvertlet(SqlKind.STDDEV_POP));
     registerOp(SqlStdOperatorTable.STDDEV_SAMP,

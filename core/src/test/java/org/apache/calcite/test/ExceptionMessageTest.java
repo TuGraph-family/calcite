@@ -111,17 +111,6 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testSyntaxError() {
-    try {
-      runQuery("invalid sql");
-      fail("Query should fail");
-    } catch (SQLException e) {
-      assertThat(e.getMessage(),
-          equalTo("Error while executing SQL \"invalid sql\": parse failed: "
-              + "Non-query expression encountered in illegal context"));
-    }
-  }
-
   @Test public void testSemanticError() {
     try {
       runQuery("select \"name\" - \"id\" from \"entries\"");

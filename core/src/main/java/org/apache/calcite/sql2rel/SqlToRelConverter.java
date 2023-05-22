@@ -343,6 +343,13 @@ public class SqlToRelConverter {
   }
 
   /**
+   * Returns the row-expression builder.
+   */
+  public RelBuilder getRelBuilder() {
+    return relBuilder;
+  }
+
+  /**
    * Returns the number of dynamic parameters encountered during translation;
    * this must only be called after {@link #convertQuery}.
    *
@@ -754,7 +761,6 @@ public class SqlToRelConverter {
       bb.setRoot(
           rel,
           false);
-
       return;
     }
 
@@ -998,7 +1004,7 @@ public class SqlToRelConverter {
     bb.setRoot(r, false);
   }
 
-  private void replaceSubQueries(
+  protected void replaceSubQueries(
       final Blackboard bb,
       final SqlNode expr,
       RelOptUtil.Logic logic) {
@@ -2690,6 +2696,7 @@ public class SqlToRelConverter {
     createAggImpl(
         bb,
         aggConverter,
+        select,
         selectList,
         groupList,
         having,
@@ -2699,6 +2706,7 @@ public class SqlToRelConverter {
   protected final void createAggImpl(
       Blackboard bb,
       final AggConverter aggConverter,
+      SqlSelect select,
       SqlNodeList selectList,
       SqlNodeList groupList,
       SqlNode having,
@@ -2895,8 +2903,10 @@ public class SqlToRelConverter {
    * @param aggCalls Array of calls to aggregate functions
    * @return LogicalAggregate
    */
-  protected RelNode createAggregate(Blackboard bb, ImmutableBitSet groupSet,
-      ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+  protected RelNode createAggregate(Blackboard bb,
+                                    ImmutableBitSet groupSet,
+                                    ImmutableList<ImmutableBitSet> groupSets,
+                                    List<AggregateCall> aggCalls) {
     return LogicalAggregate.create(bb.root, groupSet, groupSets, aggCalls);
   }
 
@@ -4047,6 +4057,14 @@ public class SqlToRelConverter {
       this.isPatternVarRef = isVarRef;
     }
 
+    public void setAgg(AggConverter agg) {
+      this.agg = agg;
+    }
+
+    public AggConverter getAgg() {
+      return this.agg;
+    }
+
     public RexNode register(
         RelNode rel,
         JoinRelType joinType) {
@@ -4187,7 +4205,7 @@ public class SqlToRelConverter {
       this.columnMonotonicities.clear();
     }
 
-    private void setRoot(
+    protected void setRoot(
         List<RelNode> inputs,
         RelNode root,
         boolean hasSystemFields) {
@@ -4197,6 +4215,11 @@ public class SqlToRelConverter {
       if (hasSystemFields) {
         this.systemFieldList.addAll(getSystemFields());
       }
+    }
+
+    public void addInput(RelNode input) {
+      this.inputs = new ArrayList<>(inputs);
+      this.inputs.add(input);
     }
 
     /**
@@ -4800,6 +4823,12 @@ public class SqlToRelConverter {
 
     /** Are we directly inside a windowed aggregate? */
     private boolean inOver = false;
+
+    /** Parameterless constructor for GQLAggConverter inheritance */
+    public AggConverter(Blackboard bb) {
+      this.bb = bb;
+      this.aggregatingSelectScope = null;
+    }
 
     /**
      * Creates an AggConverter.

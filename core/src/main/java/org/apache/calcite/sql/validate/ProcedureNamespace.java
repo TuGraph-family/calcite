@@ -17,11 +17,15 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Namespace whose contents are defined by the result of a call to a
@@ -59,7 +63,25 @@ public class ProcedureNamespace extends AbstractNamespace {
           : "User-defined table function should have CURSOR type, not " + type;
       final SqlUserDefinedTableFunction udf =
           (SqlUserDefinedTableFunction) operator;
-      return udf.getRowType(validator.typeFactory, callBinding.operands());
+      // Support RichTableFunction
+      if (udf.getFunction() instanceof IRichTableFunction) {
+        List<RelDataType> paramTypes = callBinding.collectOperandTypes();
+        List<String> outFieldNames = new ArrayList<>();
+
+        SqlBasicCall tableCall = (SqlBasicCall) getEnclosingNode();
+        SqlNode[] operands = tableCall.getOperands();
+        for (int i = 2; i < operands.length; i++) {
+          outFieldNames.add(operands[i].toString());
+        }
+        IRichTableFunction tableFunction = (IRichTableFunction) udf.getFunction();
+        List<Object> arguments =
+            SqlUserDefinedTableMacro.convertArguments(validator.typeFactory,
+                callBinding.operands(), udf.function, udf.getNameAsId(), false);
+        return tableFunction.getRowType(validator.typeFactory, arguments, paramTypes,
+            outFieldNames);
+      } else {
+        return udf.getRowType(validator.typeFactory, callBinding.operands());
+      }
     } else if (operator instanceof SqlUserDefinedTableMacro) {
       assert type.getSqlTypeName() == SqlTypeName.CURSOR
           : "User-defined table macro should have CURSOR type, not " + type;

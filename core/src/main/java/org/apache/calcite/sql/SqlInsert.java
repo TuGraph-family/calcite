@@ -101,6 +101,10 @@ public class SqlInsert extends SqlCall {
     return targetTable;
   }
 
+  public void setTargetTable(SqlNode targetTable) {
+    this.targetTable = targetTable;
+  }
+
   /**
    * @return the source expression for the data to be inserted
    */

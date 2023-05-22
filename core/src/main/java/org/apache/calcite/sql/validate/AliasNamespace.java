@@ -92,6 +92,7 @@ public class AliasNamespace extends AbstractNamespace {
       typeList.add(field.getType());
     }
     return validator.getTypeFactory().createStructType(
+        rowType.getStructKind(),
         typeList,
         nameList);
   }

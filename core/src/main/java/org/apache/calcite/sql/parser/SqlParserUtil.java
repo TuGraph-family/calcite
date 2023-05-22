@@ -100,9 +100,18 @@ public final class SqlParserUtil {
    * quotes and unescaping internal doubled quotes).
    */
   public static String parseString(String s) {
-    int i = s.indexOf("'"); // start of body
-    if (i > 0) {
+    int i = 0;
+    for (; i < s.length(); i++) {
+      if (s.charAt(i) == '\''
+          || s.charAt(i) == '"') {
+        break;
+      }
+    }
+    if (i < s.length()) {
       s = s.substring(i);
+    }
+    if (s.startsWith("\"")) {
+      return strip(s, "\"", "\"", "\"\"", Casing.UNCHANGED);
     }
     return strip(s, "'", "'", "''", Casing.UNCHANGED);
   }

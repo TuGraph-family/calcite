@@ -23,7 +23,6 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.util.Util;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -63,7 +62,13 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
-    RelDataType newType = new BasicSqlType(typeSystem, typeName, precision);
+    RelDataType newType;
+    if (precision == RelDataType.PRECISION_NOT_SPECIFIED) {
+      // fix exception in BasicSqlType#checkPrecScale() when typeName is SqlTypeName#NULL
+      newType = new BasicSqlType(typeSystem, typeName);
+    } else {
+      newType = new BasicSqlType(typeSystem, typeName, precision);
+    }
     newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
     return canonize(newType);
   }
@@ -139,7 +144,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               charset,
               collation);
     } else {
-      throw Util.needToImplement("need to implement " + type);
+      newType = type;
     }
     return canonize(newType);
   }

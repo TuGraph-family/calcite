@@ -90,6 +90,9 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference ARG0 =
       new OrdinalReturnTypeInference(0);
+
+  public static final SqlReturnTypeInference ARG0_FORCE_NULLTYPE_DOUBLE =
+      cascade(ARG0, SqlTypeTransforms.NULL_TYPE_TO_DOUBLE);
   /**
    * Type-inference strategy whereby the result type of a call is VARYING the
    * type of the first argument. The length returned is the same as length of
@@ -107,6 +110,17 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference ARG0_NULLABLE =
       cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
+
+  public static final SqlReturnTypeInference ARG0_NULLABLE_FORCE_NULLTYPE_DOUBLE =
+      cascade(ARG0_NULLABLE, SqlTypeTransforms.NULL_TYPE_TO_DOUBLE);
+
+  public static final SqlReturnTypeInference ARG0_NULLABLE_FORCE_NULLTYPE_VARCHAR =
+      cascade(ARG0_NULLABLE, SqlTypeTransforms.NULL_TYPE_TO_VARCHAR);
+  /**
+   *
+   */
+  public static final SqlReturnTypeInference ARG0_NULLABLE_VARYING_FORCE_NULLTYPE_TO_VARCHAR =
+      cascade(ARG0_NULLABLE_VARYING, SqlTypeTransforms.NULL_TYPE_TO_VARCHAR);
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
@@ -194,12 +208,15 @@ public abstract class ReturnTypes {
         final int n = opBinding.getOperandCount();
         RelDataType type1 = null;
         for (int i = 0; i < n; i++) {
-          type1 = opBinding.getOperandType(i);
-          if (type1.isNullable()) {
+          RelDataType type2 = opBinding.getOperandType(i);
+          if (type2.isNullable()
+              && type2.getFamily() != SqlTypeFamily.NULL) {
+            type1 = type2;
             break;
           }
         }
-        return type1;
+        return type1 == null
+            ? opBinding.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN) : type1;
       };
 
   /**

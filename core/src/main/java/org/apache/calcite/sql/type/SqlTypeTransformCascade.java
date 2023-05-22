@@ -55,8 +55,9 @@ public class SqlTypeTransformCascade implements SqlReturnTypeInference {
     if (ret == null) {
       // inferReturnType may return null; transformType does not accept or
       // return null types
-      return null;
+      return ret;
     }
+
     for (SqlTypeTransform transform : transforms) {
       ret = transform.transformType(opBinding, ret);
     }

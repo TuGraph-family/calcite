@@ -37,12 +37,12 @@ import java.util.List;
  * A concrete implementation of {@link org.apache.calcite.jdbc.CalciteSchema}
  * that maintains minimal state.
  */
-class SimpleCalciteSchema extends CalciteSchema {
+public class SimpleCalciteSchema extends CalciteSchema {
   /** Creates a SimpleCalciteSchema.
    *
    * <p>Use {@link CalciteSchema#createRootSchema(boolean)}
    * or {@link #add(String, Schema)}. */
-  SimpleCalciteSchema(CalciteSchema parent, Schema schema, String name) {
+  public SimpleCalciteSchema(CalciteSchema parent, Schema schema, String name) {
     this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 

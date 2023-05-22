@@ -457,7 +457,7 @@ JAVACODE SqlParseException convertException(Throwable ex)
         // the CalciteContextException appears because the parser
         // occasionally calls into validator-style code such as
         // SqlSpecialOperator.reduceExpr.
-        CalciteContextException ece =
+        /** CalciteContextException ece =
             (CalciteContextException) ex;
         pos = new SqlParserPos(
             ece.getPosLine(),
@@ -465,6 +465,7 @@ JAVACODE SqlParseException convertException(Throwable ex)
             ece.getEndPosLine(),
             ece.getEndPosColumn());
         ex = ece.getCause();
+        */
     }
 
     return new SqlParseException(
@@ -662,6 +663,13 @@ SqlNode LeafQuery(ExprContext exprContext) :
     e = TableConstructor() { return e; }
 |
     e = ExplicitTable(getPos()) { return e; }
+<#if parser.extendLeafQueryParserMethods?size != 0>
+    |
+     <#list parser.extendLeafQueryParserMethods as method>
+         e = ${method}() { return e; }
+         <#sep>|</#sep>
+      </#list>
+ </#if>
 }
 
 /**
@@ -685,7 +693,9 @@ SqlNode ParenthesizedExpression(ExprContext exprContext) :
             break;
         }
     }
-    e = OrderedQueryOrExpr(exprContext)
+    (
+        e = OrderedQueryOrExpr(exprContext)
+    )
     <RPAREN>
     {
         return e;
@@ -1020,6 +1030,7 @@ SqlSelect SqlSelect() :
     final SqlNode having;
     final SqlNodeList windowDecls;
     final Span s;
+    final SqlNode trigger;
 }
 {
     <SELECT>
@@ -1060,7 +1071,8 @@ SqlSelect SqlSelect() :
         }
     )
     {
-        return new SqlSelect(s.end(this), keywordList,
+        return new SqlSelect(s.end(this),
+            new SqlNodeList(keywords, s.end(this)),
             new SqlNodeList(selectList, Span.of(selectList).pos()),
             fromClause, where, groupBy, having, windowDecls, null, null, null);
     }
@@ -1560,14 +1572,34 @@ SqlNode SelectItem() :
 {
     SqlNode e;
     SqlIdentifier id;
+    List<SqlIdentifier> ids = new ArrayList();
+    final Span s = span();
 }
 {
     e = SelectExpression()
     [
         [ <AS> ]
-        id = SimpleIdentifier() {
-            e = SqlStdOperatorTable.AS.createCall(span().end(e), e, id);
-        }
+        (
+            (
+            id = SimpleIdentifier()
+            {
+                e = SqlStdOperatorTable.AS.createCall(s.end(e), e, id);
+            }
+            )
+        |
+            (
+            <LPAREN>
+                id = SimpleIdentifier()
+                {
+                    ids.add(id);
+                }
+                ( <COMMA> id = SimpleIdentifier() { ids.add(id);} )*
+            <RPAREN>
+            {
+                e = SqlStdOperatorTable.AS.createCall(s.end(e), e, new SqlNodeList(ids, s.end(e)));
+            }
+            )
+        )
     ]
     {
         return e;
@@ -2980,9 +3012,9 @@ SqlNode LeafQueryOrExpr(ExprContext exprContext) :
     SqlNode e;
 }
 {
-    e = Expression(exprContext) { return e; }
-|
     e = LeafQuery(exprContext) { return e; }
+    |
+    e = Expression(exprContext) { return e; }
 }
 
 /**
@@ -3243,7 +3275,7 @@ SqlNode Expression3(ExprContext exprContext) :
     Span rowSpan = null;
 }
 {
-    LOOKAHEAD(2)
+    LOOKAHEAD(3)
     e = AtomicRowExpression()
     {
         checkNonQueryExpression(exprContext);
@@ -3405,6 +3437,9 @@ SqlNode AtomicRowExpression() :
         e = MapConstructor()
     |
         e = PeriodConstructor()
+    <#list parser.extendExpressions as extendExp>
+                | e = ${extendExp}()
+    </#list>
     |
         // NOTE jvs 18-Jan-2005:  use syntactic lookahead to discriminate
         // compound identifiers from function calls in which the function
@@ -5268,7 +5303,7 @@ SqlCall JsonObjectAggFunctionCall() :
     ]
     <RPAREN> {
         return SqlStdOperatorTable.JSON_OBJECTAGG.with(nullClause)
-            .createCall(span.end(this), args);
+              .createCall(span.end(this), args);
     }
 }
 
@@ -5317,7 +5352,7 @@ SqlCall JsonArrayAggFunctionCall() :
 {
     <JSON_ARRAYAGG> { span = span(); }
     <LPAREN> e = JsonValueExpression(false) {
-        args[0] = e;
+      args[0] = e;
     }
     [
         e = JsonConstructorNullClause() {
@@ -5326,7 +5361,7 @@ SqlCall JsonArrayAggFunctionCall() :
     ]
     <RPAREN> {
         return SqlStdOperatorTable.JSON_ARRAYAGG.with(nullClause)
-            .createCall(span.end(this), args);
+             .createCall(span.end(this), args);
     }
 }
 
@@ -6162,6 +6197,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DETERMINISTIC: "DETERMINISTIC" >
 |   < DIAGNOSTICS: "DIAGNOSTICS" >
 |   < DISALLOW: "DISALLOW" >
+|   < DISCARD:  "DISCARD"  >
 |   < DISCONNECT: "DISCONNECT" >
 |   < DISPATCH: "DISPATCH" >
 |   < DISTINCT: "DISTINCT" >
@@ -6235,6 +6271,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < GROUPS: "GROUPS" >
 |   < HAVING: "HAVING" >
 |   < HIERARCHY: "HIERARCHY" >
+|   < HINT_START: "/*+" >
 |   < HOLD: "HOLD" >
 |   < HOUR: "HOUR" >
 |   < IDENTITY: "IDENTITY" >
@@ -6775,7 +6812,11 @@ void NonReservedKeyWord2of3() :
      * not just hexits, in a binary string literal. */
     < BINARY_STRING_LITERAL: ["x","X"] <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
 |
-    < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
+   <#if parser.enableDoubleQuote>
+    < QUOTED_STRING: (<QUOTE> ( (~["\'" , "\\"]) | ( "\\" ~[] ) )* <QUOTE>) | (<DOUBLE_QUOTE> ( ~["\"" , "\\"] | ("\\" ~[]) )* <DOUBLE_QUOTE> ) >
+   <#else>
+     < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
+   </#if>
 |
     < PREFIXED_STRING_LITERAL: ("_" <CHARSETNAME> | "N") <QUOTED_STRING> >
 |
@@ -6981,7 +7022,7 @@ MORE :
     ("$" (<LETTER>|<DIGIT>|"_")+)?
     >
 |
-    < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+    < IDENTIFIER: ("~" | <LETTER> | "$") (<LETTER>|<DIGIT>)* >
 |
     < UNICODE_QUOTED_IDENTIFIER: "U" "&" <QUOTED_IDENTIFIER> >
 |

@@ -184,7 +184,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   protected void addAlias(final SqlOperator alias, final SqlOperator target) {
     map.put(
         alias, (SqlRexConvertlet) (cx, call) -> {
-          Preconditions.checkArgument(call.getOperator() == alias,
+          Preconditions.checkArgument(call.getOperator().getName().equals(alias.getName()),
               "call to wrong operator");
           final SqlCall newCall =
               target.createCall(SqlParserPos.ZERO, call.getOperandList());

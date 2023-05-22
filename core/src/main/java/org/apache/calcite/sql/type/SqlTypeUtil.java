@@ -67,7 +67,7 @@ public abstract class SqlTypeUtil {
     // Filter out ANY elements.
     List<RelDataType> argTypes2 = new ArrayList<>();
     for (RelDataType t : argTypes) {
-      if (!isAny(t)) {
+      if (!isAny(t) && !isNull(t)) {
         argTypes2.add(t);
       }
     }
@@ -690,6 +690,10 @@ public abstract class SqlTypeUtil {
     return t.getFamily() == SqlTypeFamily.ANY;
   }
 
+  private static boolean isNull(RelDataType t) {
+    return t.getFamily() == SqlTypeFamily.NULL;
+  }
+
   /**
    * Tests whether a value can be assigned to a site.
    *
@@ -727,7 +731,7 @@ public abstract class SqlTypeUtil {
       return false;
     }
 
-    return toType.getFamily() == fromType.getFamily();
+    return toType.getSqlTypeName().getFamily() == fromType.getSqlTypeName().getFamily();
   }
 
   /**

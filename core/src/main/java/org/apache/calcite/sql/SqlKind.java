@@ -166,6 +166,8 @@ public enum SqlKind {
    */
   ORDER_BY,
 
+  PARTITION_BY,
+
   /** WITH clause. */
   WITH,
 
@@ -783,6 +785,10 @@ public enum SqlKind {
    */
   MAP_QUERY_CONSTRUCTOR,
 
+  VERTEX_VALUE_CONSTRUCTOR,
+
+  EDGE_VALUE_CONSTRUCTOR,
+
   /**
    * CURSOR constructor, for example, <code>select * from
    * TABLE(udx(CURSOR(select ...), x, y, z))</code>
@@ -1072,7 +1078,22 @@ public enum SqlKind {
    * commands for them. Use OTHER_DDL in the short term, but we are happy to add
    * new enum values for your object types. Just ask!
    */
-  OTHER_DDL;
+  OTHER_DDL,
+  GQL_RETURN,
+  GQL_FILTER,
+  GQL_MATCH_PATTERN,
+  GQL_MATCH_NODE,
+  GQL_MATCH_EDGE,
+  GQL_PATH_PATTERN,
+  CREATE_GRAPH,
+  ALTER_GRAPH,
+  DROP_GRAPH,
+  USE_GRAPH,
+  USE_INSTANCE,
+  DESC_GRAPH,
+  GQL_ALGORITHM,
+  GQL_LET,
+  GQL_PATH_PATTERN_SUB_QUERY;
 
   //~ Static fields/initializers ---------------------------------------------
 
@@ -1128,11 +1149,12 @@ public enum SqlKind {
           CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
           CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
           CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,
-          DROP_MATERIALIZED_VIEW,
+          DROP_MATERIALIZED_VIEW, CREATE_FUNCTION,
           CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
           CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
           CREATE_TYPE, DROP_TYPE,
-          SET_OPTION, OTHER_DDL);
+          SET_OPTION, CREATE_GRAPH, DROP_GRAPH,
+          ALTER_GRAPH, USE_GRAPH, USE_INSTANCE, DESC_GRAPH, OTHER_DDL);
 
   /**
    * Category consisting of query node types.
@@ -1148,7 +1170,7 @@ public enum SqlKind {
    */
   public static final EnumSet<SqlKind> QUERY =
       EnumSet.of(SELECT, UNION, INTERSECT, EXCEPT, VALUES, WITH, ORDER_BY,
-          EXPLICIT_TABLE);
+          EXPLICIT_TABLE, GQL_FILTER, GQL_RETURN, GQL_MATCH_PATTERN, GQL_LET, GQL_ALGORITHM);
 
   /**
    * Category consisting of all expression operators.

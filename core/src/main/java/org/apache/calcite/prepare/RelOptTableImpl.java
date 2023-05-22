@@ -75,7 +75,7 @@ import java.util.function.Function;
 public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   private final RelOptSchema schema;
   private final RelDataType rowType;
-  private final Table table;
+  protected final Table table;
   private final Function<Class, Expression> expressionFunction;
   private final ImmutableList<String> names;
 
@@ -88,7 +88,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
    * count. Now the materialized table can tell the same lie. */
   private final Double rowCount;
 
-  private RelOptTableImpl(
+  protected RelOptTableImpl(
       RelOptSchema schema,
       RelDataType rowType,
       List<String> names,
@@ -141,7 +141,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         table);
   }
 
-  private static Function<Class, Expression> getClassExpressionFunction(
+  protected static Function<Class, Expression> getClassExpressionFunction(
       final SchemaPlus schema, final String tableName, final Table table) {
     if (table instanceof QueryableTable) {
       final QueryableTable queryableTable = (QueryableTable) table;

@@ -68,6 +68,9 @@ public class SelectNamespace extends AbstractNamespace {
   public SqlMonotonicity getMonotonicity(String columnName) {
     final RelDataType rowType = this.getRowTypeSansSystemColumns();
     final int field = SqlTypeUtil.findField(rowType, columnName);
+    if (field == -1) {
+      return SqlMonotonicity.CONSTANT;
+    }
     final SqlNode selectItem =
         validator.getRawSelectScope(select)
             .getExpandedSelectList().get(field);

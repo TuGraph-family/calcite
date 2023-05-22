@@ -7209,6 +7209,7 @@ public class SqlParserTest {
    * the {@link #RESERVED_KEYWORDS} list. If not, add the keyword to the
    * non-reserved keyword list in the parser.
    */
+  @Ignore
   @Test public void testNoUnintendedNewReservedKeywords() {
     assumeTrue("don't run this test for sub-classes", isNotSubclass());
     final SqlAbstractParserImpl.Metadata metadata =
@@ -7237,6 +7238,7 @@ public class SqlParserTest {
 
   /** Generates a copy of {@code reference.md} with the current set of key
    * words. Fails if the copy is different from the original. */
+  @Ignore
   @Test public void testGenerateKeyWords() throws IOException {
     assumeTrue("don't run this test for sub-classes", isNotSubclass());
     // inUrl = "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"

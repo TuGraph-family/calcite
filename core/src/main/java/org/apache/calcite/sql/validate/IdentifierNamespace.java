@@ -68,7 +68,7 @@ public class IdentifierNamespace extends AbstractNamespace {
    * @param enclosingNode Enclosing node
    * @param parentScope   Parent scope which this namespace turns to in order to
    */
-  IdentifierNamespace(SqlValidatorImpl validator, SqlIdentifier id,
+  public IdentifierNamespace(SqlValidatorImpl validator, SqlIdentifier id,
       @Nullable SqlNodeList extendList, SqlNode enclosingNode,
       SqlValidatorScope parentScope) {
     super(validator, enclosingNode);
@@ -77,7 +77,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     this.parentScope = Objects.requireNonNull(parentScope);
   }
 
-  IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,
+  public IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,
       SqlNode enclosingNode, SqlValidatorScope parentScope) {
     this(validator, split(node).left, split(node).right, enclosingNode,
         parentScope);
@@ -170,10 +170,15 @@ public class IdentifierNamespace extends AbstractNamespace {
       }
     }
     throw validator.newValidationError(id,
-        RESOURCE.objectNotFound(id.getComponent(0).toString()));
+        RESOURCE.objectNotFound(id.toString()));
+  }
+
+  protected SqlIdentifier getResolveId(SqlIdentifier id) {
+    return id;
   }
 
   public RelDataType validateImpl(RelDataType targetRowType) {
+    SqlIdentifier id = getResolveId(this.id);
     resolvedNamespace = Objects.requireNonNull(resolveImpl(id));
     if (resolvedNamespace instanceof TableNamespace) {
       SqlValidatorTable table = resolvedNamespace.getTable();
@@ -265,6 +270,10 @@ public class IdentifierNamespace extends AbstractNamespace {
       return modality == SqlModality.RELATION;
     }
     return table.supportsModality(modality);
+  }
+
+  public SqlValidatorScope getParentScope() {
+    return parentScope;
   }
 }
 

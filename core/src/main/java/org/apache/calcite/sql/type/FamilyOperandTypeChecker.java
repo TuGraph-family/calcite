@@ -29,8 +29,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static org.apache.calcite.util.Static.RESOURCE;
-
 /**
  * Operand type-checking strategy which checks operands for inclusion in type
  * families.
@@ -69,12 +67,13 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
       return true;
     }
     if (SqlUtil.isNullLiteral(node, false)) {
-      if (throwOnFailure) {
-        throw callBinding.getValidator().newValidationError(node,
-            RESOURCE.nullIllegal());
-      } else {
-        return false;
-      }
+      return true;
+//      if (throwOnFailure) {
+//        throw callBinding.getValidator().newValidationError(node,
+//            RESOURCE.nullIllegal());
+//      } else {
+//        return false;
+//      }
     }
     RelDataType type =
         callBinding.getValidator().deriveType(
@@ -84,6 +83,10 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
     // Pass type checking for operators if it's of type 'ANY'.
     if (typeName.getFamily() == SqlTypeFamily.ANY) {
+      return true;
+    }
+
+    if (typeName.getFamily() == SqlTypeFamily.NULL) {
       return true;
     }
 

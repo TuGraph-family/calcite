@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.RelFactories.ProjectFactory;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
@@ -104,7 +105,10 @@ public class ProjectMergeRule extends RelOptRule {
         return;
       }
     }
-
+    // if top project contains RexCorrelVariable, pass this rule
+    if (RexCorrelVariable.containCorrelVariable(topProject.getProjects())) {
+      return;
+    }
     final List<RexNode> newProjects =
         RelOptUtil.pushPastProject(topProject.getProjects(), bottomProject);
     final RelNode input = bottomProject.getInput();

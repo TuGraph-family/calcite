@@ -30,7 +30,7 @@ import java.util.List;
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
  */
-abstract class AbstractNamespace implements SqlValidatorNamespace {
+public abstract class AbstractNamespace implements SqlValidatorNamespace {
   //~ Instance fields --------------------------------------------------------
 
   protected final SqlValidatorImpl validator;
@@ -61,7 +61,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * @param validator     Validator
    * @param enclosingNode Enclosing node
    */
-  AbstractNamespace(
+  public AbstractNamespace(
       SqlValidatorImpl validator,
       SqlNode enclosingNode) {
     this.validator = validator;

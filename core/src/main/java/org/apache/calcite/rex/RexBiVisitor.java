@@ -51,6 +51,10 @@ public interface RexBiVisitor<R, P> {
   R visitTableInputRef(RexTableInputRef ref, P arg);
 
   R visitPatternFieldRef(RexPatternFieldRef ref, P arg);
+
+  default R visitOther(RexNode node, P arg) {
+    throw new IllegalArgumentException("Not implement");
+  }
 }
 
 // End RexBiVisitor.java
