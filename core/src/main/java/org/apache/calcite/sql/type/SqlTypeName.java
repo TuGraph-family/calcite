@@ -126,6 +126,18 @@ public enum SqlTypeName {
   GRAPH(PrecScale.NO_NO, true, -1, SqlTypeFamily.GRAPH),
   PATH(PrecScale.NO_NO, true, -1, SqlTypeFamily.GRAPH);
 
+  private int precision;
+
+  public static SqlTypeName get(String name, int precision) {
+    SqlTypeName stName = VALUES_MAP.get(name);
+    stName.precision = precision;
+    return stName;
+  }
+
+  public int getPrecision() {
+    return precision;
+  }
+
   public static final int MAX_DATETIME_PRECISION = 3;
 
   // Minimum and default interval precisions are  defined by SQL2003
